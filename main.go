@@ -1,42 +1,50 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-
-	"githun.com/Shanjm/tracing-aspect/config"
-	"githun.com/Shanjm/tracing-aspect/instrument"
+	"github.com/Shanjm/tracing-aspect/instrument"
 )
 
 func main() {
-	conf := config.LoadLocal("test.jim")
-	ins := instrument.NewInstrument("/data/accurate_test/test", conf)
+	// ins := instrument.NewInstrument("/data/accurate_test/test", conf)
+	ins := instrument.NewInstrument("/data/main/adq/delivery/delivery/server/dpmain")
 
 	// 插桩代码
 	ins.Instrument()
 
 	// 导入源码文件, 文件命名无所谓
-	filename := filepath.Join(ins.RootDir, instrument.PackageName+"/goreport.go")
-	os.MkdirAll(filepath.Dir(filename), 0644)
-	os.WriteFile(filename, []byte(instrument.SourceCode), 0644)
+	// filename := filepath.Join(ins.RootDir, instrument.PackageName+"/goreport.go")
+	// os.MkdirAll(filepath.Dir(filename), 0644)
+	// os.WriteFile(filename, []byte(instrument.SourceCode), 0644)
 
-	fmt.Println("插桩完成，请运行go get -u github.com/petermattis/goid")
+	// fmt.Println("插桩完成，请运行go get -u github.com/petermattis/goid")
 
 	// for x := range ins.Calling {
+	// 	callerInfoP := ins.Project.SsaProgram.Fset.Position(x.Node.Pos())
+	// 	callerInfoE := ins.Project.SsaProgram.Fset.Position(x.Node.End())
+
+	// 	if callerInfoP.Filename != "/data/main/adq/delivery/delivery/server/dpmain/ad/ad.go" {
+	// 		continue
+	// 	}
+
 	// 	callee := ins.Calling[x]
 	// 	for _, ce := range callee {
-	// 		fmt.Printf("%s:%d:%d-%d:%d---调用--> %s:%d:%d-%d:%d\n",
+	// 		calleeInfoP := ins.Project.SsaProgram.Fset.Position(ce.Node.Pos())
+	// 		calleeInfoE := ins.Project.SsaProgram.Fset.Position(ce.Node.End())
+
+	// 		fmt.Printf("文件名:%s, 函数名:%s, 位置信息:%d:%d-%d:%d\n---调用--> \n文件名:%s, 函数名:%s, 位置信息:%d:%d-%d:%d\n\n",
+	// 			callerInfoP.Filename,
 	// 			x.Fun.String(),
-	// 			ins.Project.SsaProgram.Fset.Position(x.Node.Pos()).Line,
-	// 			ins.Project.SsaProgram.Fset.Position(x.Node.Pos()).Column,
-	// 			ins.Project.SsaProgram.Fset.Position(x.Node.End()).Line,
-	// 			ins.Project.SsaProgram.Fset.Position(x.Node.End()).Column,
+	// 			callerInfoP.Line,
+	// 			callerInfoP.Column,
+	// 			callerInfoE.Line,
+	// 			callerInfoE.Column,
+
+	// 			calleeInfoP.Filename,
 	// 			ce.Fun.String(),
-	// 			ins.Project.SsaProgram.Fset.Position(ce.Node.Pos()).Line,
-	// 			ins.Project.SsaProgram.Fset.Position(ce.Node.Pos()).Column,
-	// 			ins.Project.SsaProgram.Fset.Position(ce.Node.End()).Line,
-	// 			ins.Project.SsaProgram.Fset.Position(ce.Node.End()).Column)
+	// 			calleeInfoP.Line,
+	// 			calleeInfoP.Column,
+	// 			calleeInfoE.Line,
+	// 			calleeInfoE.Column)
 	// 	}
 	// }
 }

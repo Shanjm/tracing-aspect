@@ -10,10 +10,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"githun.com/Shanjm/tracing-aspect/analysis"
-	"githun.com/Shanjm/tracing-aspect/callgraph"
-	"githun.com/Shanjm/tracing-aspect/config"
-	"githun.com/Shanjm/tracing-aspect/log"
+	"github.com/Shanjm/tracing-aspect/analysis"
+	"github.com/Shanjm/tracing-aspect/callgraph"
+	"github.com/Shanjm/tracing-aspect/log"
 )
 
 const (
@@ -28,14 +27,13 @@ var (
 // InsPara 插桩结构体
 type InsPara struct {
 	RootDir string
-	Config  *config.Config
 	Project *analysis.Project
 	Calling callgraph.CallingMap
 
-	funcMap       map[string]struct{}
-	rewriteMap    map[string]*rewrite
-	nodeInspected map[ast.Node]struct{}
-	visited       map[*analysis.Member]struct{}
+	funcMap       map[string]struct{}           // 需要追踪的函数
+	rewriteMap    map[string]*rewrite           // 重写文件map
+	nodeInspected map[ast.Node]struct{}         // 已经访问过的节点
+	visited       map[*analysis.Member]struct{} // 已经访问过的函数
 }
 
 // 重写结构体
@@ -45,7 +43,7 @@ type rewrite struct {
 }
 
 // NewInstrument 返回一个插桩结构体
-func NewInstrument(root string, appConfig *config.Config) *InsPara {
+func NewInstrument(root string) *InsPara {
 	dir, err := os.Stat(root)
 	if !(err == nil && dir.IsDir()) {
 		log.Fatalln(ErrNotDir)
@@ -53,7 +51,6 @@ func NewInstrument(root string, appConfig *config.Config) *InsPara {
 	root, _ = filepath.Abs(root)
 	return &InsPara{
 		RootDir: root,
-		Config:  appConfig,
 
 		funcMap:       make(map[string]struct{}),
 		rewriteMap:    make(map[string]*rewrite),
@@ -69,10 +66,8 @@ func (i *InsPara) Instrument() {
 	for _, pkg := range i.Project.Pm {
 		for _, file := range pkg.Fm {
 			for _, fu := range file.FunMember {
-				if i.Config.GetHandlerJuder().IsHandler(fu.Fun) {
-					log.Println(fmt.Sprintf("find the entry: %s", fu.Name))
-					i.instrument(fu, file.ParsedFile, true)
-				}
+				log.Println(fmt.Sprintf("find the entry: %s", fu.Name))
+				i.instrument(fu, file.ParsedFile, true)
 			}
 		}
 	}
@@ -91,10 +86,6 @@ func (i *InsPara) parseProject() {
 	i.Calling = cm
 
 	log.Println(fmt.Sprintf("the root package: %s", i.Project.RootPkg))
-
-	for _, f := range i.Config.FList {
-		i.funcMap[f.Name] = struct{}{}
-	}
 }
 
 // 重写文件

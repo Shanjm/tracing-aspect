@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"githun.com/Shanjm/tracing-aspect/test/util"
+	"github.com/Shanjm/tracing-aspect/test/util"
 )
 
 func main() {

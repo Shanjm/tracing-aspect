@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -43,19 +44,26 @@ func getCaller() (string, int) {
 	return filename, line
 }
 
-func Println(msg string) {
+func Println(msgs ...interface{}) {
 	filename, line := getCaller()
 	if INFO < l.level {
 		return
 	}
-
+	msg := ""
+	for _, m := range msgs {
+		msg += fmt.Sprintf(" %+v", m)
+	}
 	l.logger.Printf("INFO %s:%d %s", filename, line, msg)
 }
 
-func Debugln(msg string, level LLevel) {
+func Debugln(msgs ...interface{}) {
 	filename, line := getCaller()
 	if DEBUG < l.level {
 		return
+	}
+	msg := ""
+	for _, m := range msgs {
+		msg += fmt.Sprintf(" %+v", m)
 	}
 	l.logger.Printf("DEBUG %s:%d %s", filename, line, msg)
 }

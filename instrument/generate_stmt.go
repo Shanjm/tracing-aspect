@@ -5,8 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 
-	"githun.com/Shanjm/tracing-aspect/analysis"
-	"githun.com/Shanjm/tracing-aspect/config"
+	"github.com/Shanjm/tracing-aspect/analysis"
 )
 
 func (i *InsPara) getStartStmt() []ast.Stmt {
@@ -42,57 +41,53 @@ func (i *InsPara) getStartStmt() []ast.Stmt {
 // TODO
 func (i *InsPara) getCopyStmt(funcMember *analysis.Member) []ast.Stmt {
 	p := funcMember.Fun.Params
-	switch i.Config.Server {
-	case config.O_HTTP:
-		var reassignStmt *ast.AssignStmt = &ast.AssignStmt{
-			Tok: token.ASSIGN,
-			Lhs: []ast.Expr{
-				&ast.Ident{
-					Name: p[len(p)-2].Name(),
-				},
+	var reassignStmt *ast.AssignStmt = &ast.AssignStmt{
+		Tok: token.ASSIGN,
+		Lhs: []ast.Expr{
+			&ast.Ident{
+				Name: p[len(p)-2].Name(),
 			},
-			Rhs: []ast.Expr{
-				&ast.CallExpr{
-					Fun: &ast.SelectorExpr{
-						X: &ast.Ident{
-							Name: PackageName,
-						},
-						Sel: &ast.Ident{
-							Name: "NewRecorder",
-						},
-					},
-					Args: []ast.Expr{
-						&ast.Ident{
-							Name: p[len(p)-2].Name(),
-						},
-					},
-				},
-			},
-		}
-
-		var deferStmt *ast.DeferStmt = &ast.DeferStmt{
-			Call: &ast.CallExpr{
+		},
+		Rhs: []ast.Expr{
+			&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
 					X: &ast.Ident{
 						Name: PackageName,
 					},
 					Sel: &ast.Ident{
-						Name: "DumpOriHttp",
+						Name: "NewRecorder",
 					},
 				},
 				Args: []ast.Expr{
-					&ast.Ident{
-						Name: p[len(p)-1].Name(),
-					},
 					&ast.Ident{
 						Name: p[len(p)-2].Name(),
 					},
 				},
 			},
-		}
-		return []ast.Stmt{reassignStmt, deferStmt}
+		},
 	}
-	return []ast.Stmt{}
+
+	var deferStmt *ast.DeferStmt = &ast.DeferStmt{
+		Call: &ast.CallExpr{
+			Fun: &ast.SelectorExpr{
+				X: &ast.Ident{
+					Name: PackageName,
+				},
+				Sel: &ast.Ident{
+					Name: "DumpOriHttp",
+				},
+			},
+			Args: []ast.Expr{
+				&ast.Ident{
+					Name: p[len(p)-1].Name(),
+				},
+				&ast.Ident{
+					Name: p[len(p)-2].Name(),
+				},
+			},
+		},
+	}
+	return []ast.Stmt{reassignStmt, deferStmt}
 }
 
 func (i *InsPara) getParentIdStmt() []ast.Stmt {

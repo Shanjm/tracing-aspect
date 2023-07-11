@@ -1,4 +1,4 @@
-module githun.com/Shanjm/tracing-aspect
+module github.com/Shanjm/tracing-aspect
 
 go 1.16
 

@@ -29,10 +29,9 @@ type (
 		Fun       *ssa.Function              // 函数
 		Wrapper   map[*ssa.Function]struct{} // 包装器
 		AnonFuncs []string                   // 成员内匿名函数名
-		// Const Var属性
-		Vname     string
-		NameNode  ast.Node
-		ValueNode ast.Node
+		ShortName string                     // 短名
+		NameNode  ast.Node                   // member name node or nil
+		ValueNode ast.Node                   // member value node or nil
 	}
 
 	// 源码文件结构体
@@ -57,7 +56,8 @@ type (
 		Pm         map[string]*Package
 		SsaProgram *ssa.Program
 		SsaPkgs    []*ssa.Package
-		RootPkg    string
+		RootPkg    string            // 包的根路径，目前看只有插桩时使用
+		Rely       map[string]string // key: 模块 value: 路径
 
 		wrappers []*ssa.Function
 	}
@@ -115,22 +115,26 @@ func (f *File) addVar(specs []ast.Spec, pkg *ssa.Package) {
 		if t, ok := spec.(*ast.ValueSpec); ok {
 			for i := 0; i < len(t.Names); i++ {
 				tName := t.Names[i]
-				var tValue ast.Node
-				if t.Values != nil {
-					tValue = t.Values[i]
-				} else {
-					tValue = nil
-				}
+				var tValue ast.Node = nil
+				var typ types.Type = nil
 
-				var typ types.Type
-				if mem, ok := pkg.Members[tName.Name]; ok && mem.Token() == token.VAR {
-					typ = mem.Type()
-					if strings.HasPrefix(typ.Underlying().String(), "*func(") {
-						funcMember := f.FindFuncMember(tValue, pkg)
-						if funcMember != nil {
-							funcMember.Vname = tName.Name
+				if t.Values != nil {
+					if len(t.Values) == len(t.Names) {
+						tValue = t.Values[i]
+					} else {
+						tValue = t.Values[0]
+					}
+
+					if mem, ok := pkg.Members[tName.Name]; ok && mem.Token() == token.VAR {
+						typ = mem.Type()
+
+						if strings.HasPrefix(typ.Underlying().String(), "*func(") {
+							funcMember := f.FindFuncMember(tValue, pkg)
+							if funcMember != nil {
+								funcMember.ShortName = tName.Name
+							}
+							continue
 						}
-						continue
 					}
 				}
 
@@ -139,14 +143,14 @@ func (f *File) addVar(specs []ast.Spec, pkg *ssa.Package) {
 					Pkg:       pkg,
 					File:      f.File,
 					Node:      t,
-					Token:     token.TYPE,
+					Token:     token.VAR,
 					Type:      typ,
 					Fun:       nil,
 					Wrapper:   nil,
 					AnonFuncs: nil,
 					NameNode:  tName,
 					ValueNode: tValue,
-					Vname:     tName.Name,
+					ShortName: tName.Name,
 				})
 			}
 		}
@@ -183,7 +187,7 @@ func (f *File) addConst(specs []ast.Spec, pkg *ssa.Package) {
 					AnonFuncs: nil,
 					NameNode:  tName,
 					ValueNode: tValue,
-					Vname:     tName.Name,
+					ShortName: tName.Name,
 				})
 			}
 		}
@@ -211,6 +215,7 @@ func (f *File) addType(spec ast.Spec, pkg *ssa.Package) {
 			AnonFuncs: nil,
 			NameNode:  nil,
 			ValueNode: nil,
+			ShortName: t.Name.Name,
 		})
 	}
 }
@@ -226,9 +231,7 @@ func (f *File) addImport(root string, specs []ast.Spec) {
 			} else if strings.LastIndex(path, "/") >= 0 {
 				name = path[strings.LastIndex(path, "/")+1:]
 			}
-			if strings.HasPrefix(path, root) {
-				f.Imports[name] = path
-			}
+			f.Imports[name] = path
 		}
 	}
 }
@@ -280,6 +283,7 @@ func (p *Package) initFuncMember(fun *ssa.Function) {
 			Fun:       fun,
 			Wrapper:   make(map[*ssa.Function]struct{}),
 			AnonFuncs: anon,
+			ShortName: fun.Name(),
 			NameNode:  nil,
 			ValueNode: nil,
 		}
@@ -331,6 +335,9 @@ func (p *Project) FindFuncMember(fun *ssa.Function) (*Member, bool) {
 
 // 从文件中寻找成员函数
 func (f *File) FindFuncMember(n ast.Node, pkg *ssa.Package) *Member {
+	if n == nil {
+		return nil
+	}
 	pos := pkg.Prog.Fset.Position(n.Pos())
 	end := pkg.Prog.Fset.Position(n.End())
 	for _, m := range f.FunMember {

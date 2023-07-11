@@ -1,13 +1,49 @@
 package callgraph
 
 import (
-	"githun.com/Shanjm/tracing-aspect/analysis"
+	"regexp"
+	"strings"
+
+	"github.com/Shanjm/tracing-aspect/analysis"
+	"github.com/Shanjm/tracing-aspect/log"
 	"golang.org/x/tools/go/callgraph"
 	"golang.org/x/tools/go/pointer"
 	"golang.org/x/tools/go/ssa/ssautil"
 )
 
 type CallingMap map[*analysis.Member][]*analysis.Member
+
+func (c CallingMap) merge(nl map[string]*analysis.Member) {
+	for n, mem := range nl {
+		father := n[:strings.LastIndex(n, "$")]
+		if strings.HasSuffix(father, "init") {
+			continue
+		}
+		faMem := c.findByName(father)
+		if faMem != nil {
+			c.attach(faMem, mem)
+		}
+	}
+}
+
+func (c CallingMap) findByName(n string) *analysis.Member {
+	for mem := range c {
+		if mem.Name == n {
+			return mem
+		}
+	}
+	return nil
+}
+
+func (c CallingMap) attach(father, son *analysis.Member) {
+	callees := c[father]
+	for _, callee := range callees {
+		if callee == son {
+			return
+		}
+	}
+	c[father] = append(c[father], son)
+}
 
 func GenerateCallgraph(ps *analysis.Project) (CallingMap, error) {
 	ssaPkgs := ps.SsaPkgs
@@ -48,7 +84,19 @@ func GenerateCallgraph(ps *analysis.Project) (CallingMap, error) {
 		return nil
 	})
 	if err != nil {
+		log.Panicln(err)
 		return nil, err
 	}
+
+	nameless := regexp.MustCompile(`\(?\*?[a-zA-Z.]+\)?\.[a-zA-Z]+\$[0-9]+`)
+	namelessCallMap := make(map[string]*analysis.Member)
+	for caller := range callMap {
+		if nameless.MatchString(caller.Name) {
+			namelessCallMap[caller.Name] = caller
+		}
+	}
+	callMap.merge(namelessCallMap)
+	log.Debugln("get the callgraph done")
+
 	return callMap, nil
 }
