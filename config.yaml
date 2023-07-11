@@ -1,7 +1,0 @@
-project:
-  test.jim:
-    name: "test.jim"
-    type: O_HTTP
-    only_trace: false
-    func_list: 
-      - name: "(*git.woa.com/jimshan/atest/test/util.Monster).Add"
