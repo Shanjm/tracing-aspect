@@ -45,6 +45,8 @@ func (c CallingMap) attach(father, son *analysis.Member) {
 	c[father] = append(c[father], son)
 }
 
+// GenerateCallgraph TODO
+// 源码 -> 第三方 -> 第三方 -> 源码 可能存在问题
 func GenerateCallgraph(ps *analysis.Project) (CallingMap, error) {
 	ssaPkgs := ps.SsaPkgs
 
