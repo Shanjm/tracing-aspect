@@ -13,8 +13,11 @@ import (
 )
 
 // ParseProject 解析项目代码，入参为项目根目录，返回项目解析结果
-func ParseProject(propath string) *Project {
-	program, ssaPkgs := buildSSA(propath)
+func ParseProject(propath string) (*Project, error) {
+	program, ssaPkgs, err := buildSSA(propath)
+	if err != nil {
+		return nil, err
+	}
 	mains := ssautil.MainPackages(ssaPkgs)
 
 	rootPkg := ""
@@ -47,12 +50,12 @@ func ParseProject(propath string) *Project {
 
 	p.CheckOtherMember()
 	log.Println("finish the parsing project.")
-	return p
+	return p, nil
 }
 
 // buildSSA 构建 ssa
-func buildSSA(projectPath string) (program *ssa.Program, ssaPkgs []*ssa.Package) {
-	pkgs, _ := packages.Load(&packages.Config{
+func buildSSA(projectPath string) (*ssa.Program, []*ssa.Package, error) {
+	pkgs, err := packages.Load(&packages.Config{
 		Mode: packages.NeedCompiledGoFiles |
 			packages.NeedDeps |
 			packages.NeedEmbedFiles |
@@ -76,12 +79,16 @@ func buildSSA(projectPath string) (program *ssa.Program, ssaPkgs []*ssa.Package)
 		},
 	}, projectPath+"/...")
 
+	if err != nil {
+		return nil, nil, err
+	}
 	program, preSsaPkgs := ssautil.AllPackages(pkgs, ssa.GlobalDebug)
+	ssaPkgs := []*ssa.Package{}
 	for _, p := range preSsaPkgs {
 		if p != nil {
 			p.Build()
 			ssaPkgs = append(ssaPkgs, p)
 		}
 	}
-	return
+	return program, ssaPkgs, nil
 }

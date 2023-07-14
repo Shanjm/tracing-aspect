@@ -76,7 +76,10 @@ func (i *InsPara) Instrument() {
 }
 
 func (i *InsPara) parseProject() {
-	result := analysis.ParseProject(i.RootDir)
+	result, err := analysis.ParseProject(i.RootDir)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	cm, err := callgraph.GenerateCallgraph(result)
 	if err != nil {
 		log.Fatalln(err)
