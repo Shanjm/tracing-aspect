@@ -1,6 +1,8 @@
 package analysis
 
 import (
+	"errors"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -55,7 +57,7 @@ func ParseProject(propath string) (*Project, error) {
 
 // buildSSA 构建 ssa
 func buildSSA(projectPath string) (*ssa.Program, []*ssa.Package, error) {
-	pkgs, err := packages.Load(&packages.Config{
+	pkgs, _ := packages.Load(&packages.Config{
 		Mode: packages.NeedCompiledGoFiles |
 			packages.NeedDeps |
 			packages.NeedEmbedFiles |
@@ -79,9 +81,6 @@ func buildSSA(projectPath string) (*ssa.Program, []*ssa.Package, error) {
 		},
 	}, projectPath+"/...")
 
-	if err != nil {
-		return nil, nil, err
-	}
 	program, preSsaPkgs := ssautil.AllPackages(pkgs, ssa.GlobalDebug)
 	ssaPkgs := []*ssa.Package{}
 	for _, p := range preSsaPkgs {
@@ -89,6 +88,10 @@ func buildSSA(projectPath string) (*ssa.Program, []*ssa.Package, error) {
 			p.Build()
 			ssaPkgs = append(ssaPkgs, p)
 		}
+	}
+	log.Println(fmt.Sprintf("共有 %d 个包，正常解析有 %d 个", len(preSsaPkgs), len(ssaPkgs)))
+	if len(ssaPkgs) != len(preSsaPkgs) {
+		return nil, nil, errors.New("缺少有效的包，源码可能存在错误")
 	}
 	return program, ssaPkgs, nil
 }
