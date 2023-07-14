@@ -76,10 +76,11 @@ func buildSSA(projectPath string) (program *ssa.Program, ssaPkgs []*ssa.Package)
 		},
 	}, projectPath+"/...")
 
-	program, ssaPkgs = ssautil.AllPackages(pkgs, ssa.GlobalDebug)
-	for _, p := range ssaPkgs {
+	program, preSsaPkgs := ssautil.AllPackages(pkgs, ssa.GlobalDebug)
+	for _, p := range preSsaPkgs {
 		if p != nil {
 			p.Build()
+			ssaPkgs = append(ssaPkgs, p)
 		}
 	}
 	return
